@@ -110,6 +110,9 @@
 #include <uORB/topics/vehicle_magnetometer.h>
 #include <uORB/uORB.h>
 
+#include <uORB/topics/power_monitor.h> // CTSHEN
+#include <v2.0/custom_messages/mavlink_msg_ina219.h> //CTSHEN
+
 using matrix::wrap_2pi;
 
 static uint16_t cm_uint16_from_m_float(float m);
@@ -5024,6 +5027,88 @@ protected:
 	}
 };
 
+/*CTSHEN
+ * Create two costum MAVLink msgs SolarPower
+ */
+// SolarPower
+class MavlinkStreamSolarPower : public MavlinkStream
+{
+public :
+	const char *get_name() const
+	{
+		return MavlinkStreamSolarPower::get_name_static();
+	}
+
+	static const char *get_name_static()
+	{
+		return "SOLAR_POWER";
+	}
+
+	static uint16_t get_id_static()
+	{
+		return MAVLINK_MSG_ID_ina219;
+	}
+
+	uint16_t get_id()
+	{
+		return get_id_static();
+	}
+
+	static MavlinkStream *new_instance(Mavlink *mavlink)
+	{
+		return new MavlinkStreamSolarPower(mavlink);
+	}
+
+	unsigned get_size()
+	{
+		return MAVLINK_MSG_ID_ina219_LEN + MAVLINK_NUM_NON_PAYLOAD_BYTES;
+	}
+
+private:
+	MavlinkOrbSubscription *_solar_power_left_sub;
+	MavlinkOrbSubscription *_solar_power_right_sub;
+	uint64_t _solar_power_time;
+
+	/* do not allow top copying this class */
+	//MavlinkStreamSolarPower(MavlinkStreamPowerSolar &) = delete;
+	//MavlinkStreamSolarPower &operator = (const MavlinkStreamPowerSolar &) = delete;
+
+protected:
+	explicit MavlinkStreamSolarPower(Mavlink *mavlink) : MavlinkStream(mavlink),
+		_solar_power_left_sub(_mavlink->add_orb_subscription(ORB_ID(solar_power_left))),
+		_solar_power_right_sub(_mavlink->add_orb_subscription(ORB_ID(solar_power_right))),
+		_solar_power_time(0)
+	{}
+
+	bool send(const hrt_abstime t)
+	{
+		struct power_monitor_s _solar_left;
+		struct power_monitor_s _solar_right;
+
+		bool solarLeft_updated = _solar_power_left_sub->update(&_solar_power_time, &_solar_left);
+		bool solarRight_updated = _solar_power_right_sub->update(&_solar_power_time, &_solar_right);
+
+		if(solarLeft_updated || solarRight_updated){
+			mavlink_ina219_t _msg_solar_power = {};
+
+			_msg_solar_power.timestamp = _solar_left.timestamp;
+			_msg_solar_power.voltageLeft = _solar_left.voltage_v;
+			_msg_solar_power.currentLeft = _solar_left.current_a;
+			_msg_solar_power.powerLeft = _solar_left.power_w;
+			_msg_solar_power.voltageRight = _solar_right.voltage_v;
+			_msg_solar_power.currentRight = _solar_right.current_a;
+			_msg_solar_power.powerRight = _solar_right.power_w;
+
+			mavlink_msg_ina219_send_struct(_mavlink->get_channel(), &_msg_solar_power);
+
+		}
+
+		return true;
+
+	}
+
+};
+
 static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamHeartbeat::new_instance, &MavlinkStreamHeartbeat::get_name_static, &MavlinkStreamHeartbeat::get_id_static),
 	StreamListItem(&MavlinkStreamStatustext::new_instance, &MavlinkStreamStatustext::get_name_static, &MavlinkStreamStatustext::get_id_static),
@@ -5083,7 +5168,8 @@ static const StreamListItem streams_list[] = {
 	StreamListItem(&MavlinkStreamGroundTruth::new_instance, &MavlinkStreamGroundTruth::get_name_static, &MavlinkStreamGroundTruth::get_id_static),
 	StreamListItem(&MavlinkStreamPing::new_instance, &MavlinkStreamPing::get_name_static, &MavlinkStreamPing::get_id_static),
 	StreamListItem(&MavlinkStreamOrbitStatus::new_instance, &MavlinkStreamOrbitStatus::get_name_static, &MavlinkStreamOrbitStatus::get_id_static),
-	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static)
+	StreamListItem(&MavlinkStreamObstacleDistance::new_instance, &MavlinkStreamObstacleDistance::get_name_static, &MavlinkStreamObstacleDistance::get_id_static),
+	StreamListItem(&MavlinkStreamSolarPower::new_instance, &MavlinkStreamSolarPower::get_name_static, &MavlinkStreamSolarPower::get_id_static) //CTSHEN
 };
 
 const char *get_stream_name(const uint16_t msg_id)

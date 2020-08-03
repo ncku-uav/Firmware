@@ -45,6 +45,8 @@ px4_add_board(
 		optical_flow # all available optical flow drivers
 		pca9685
 		power_monitor/ina226
+		power_monitor/ina219
+		power_monitor/ina219b
 		#protocol_splitter
 		pwm_input
 		pwm_out_sim

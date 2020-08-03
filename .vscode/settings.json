@@ -96,5 +96,9 @@
         "workbench.editor.highlightModifiedTabs": true,
         "workbench.enableExperiments": false,
         "workbench.settings.enableNaturalLanguageSearch": false,
-        "workbench.statusBar.feedback.visible": false
+        "workbench.statusBar.feedback.visible": false,
+        "python.autoComplete.extraPaths": [
+                "/home/ctshen/catkin_ws/devel/lib/python2.7/dist-packages",
+                "/opt/ros/melodic/lib/python2.7/dist-packages"
+        ]
 }

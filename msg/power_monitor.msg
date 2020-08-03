@@ -13,3 +13,5 @@ int16 rc
 int16 rcal
 int16 me
 int16 al
+
+# TOPICS power_monitor solar_power_left solar_power_right
