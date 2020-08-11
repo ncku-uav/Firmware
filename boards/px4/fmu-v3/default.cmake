@@ -59,6 +59,8 @@ px4_add_board(
 		test_ppm
 		tone_alarm
 		uavcan
+		power_monitor/ina219
+		power_monitor/ina219b
 
 	MODULES
 		attitude_estimator_q
