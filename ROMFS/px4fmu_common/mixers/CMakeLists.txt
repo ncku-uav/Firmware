@@ -87,6 +87,7 @@ px4_add_romfs_files(
 	zmr250.main.mix
 	NCKU_AETRN.main.mix
 	NCKU_GBU_Release.aux.mix
+	NCKU_Phoebus.main.mix
 	#TF-AutoG2.main.mix
 	#uuv_x.main.mix
 )

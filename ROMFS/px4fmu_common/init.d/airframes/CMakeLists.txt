@@ -46,6 +46,7 @@ px4_add_romfs_files(
 	2106_albatross
 	2200_mini_talon
 	2300_NCKU_YEEX
+	2400_NCKU_Phoebus
 
 	# [3000, 3999] Flying wing"
 	3000_generic_wing
