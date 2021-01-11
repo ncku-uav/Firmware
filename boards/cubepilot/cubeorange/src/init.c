@@ -48,7 +48,7 @@
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
 #include <arch/board/board.h>
-#include "up_internal.h"
+#include "arm_internal.h"
 
 #include <drivers/drv_hrt.h>
 #include <drivers/drv_board_led.h>
@@ -151,6 +151,7 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Power on Interfaces */
 	stm32_gpiowrite(GPIO_VDD_3V3_SENSORS_EN, true);
 	stm32_gpiowrite(GPIO_nVDD_5V_PERIPH_EN, false);
+	board_control_spi_sensors_power(true, 0xffff);
 
 	px4_platform_init();
 
@@ -187,6 +188,10 @@ __EXPORT int board_app_initialize(uintptr_t arg)
 	/* Assume that the SD card is inserted.  What choice do we have? */
 	sdio_mediachange(sdio_dev, true);
 #endif /* CONFIG_MMCSD */
+
+	/* Configure the HW based on the manifest */
+
+	px4_platform_configure();
 
 	return OK;
 }

@@ -463,9 +463,12 @@ PARAM_DEFINE_FLOAT(MPC_VELD_LP, 5.0f);
 /**
  * Maximum horizontal acceleration for auto mode and for manual mode
  *
- * Maximum deceleration for MPC_POS_MODE 1. Maximum acceleration and deceleration for MPC_POS_MODE 3.
+ * MPC_POS_MODE
+ * 1 just deceleration
+ * 3 acceleration and deceleration
+ * 4 just acceleration
  *
- * @unit m/s/s
+ * @unit m/s^2
  * @min 2.0
  * @max 15.0
  * @increment 1
@@ -479,7 +482,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR_MAX, 5.0f);
  *
  * Note: In manual, this parameter is only used in MPC_POS_MODE 1.
  *
- * @unit m/s/s
+ * @unit m/s^2
  * @min 2.0
  * @max 15.0
  * @increment 1
@@ -494,7 +497,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_HOR, 3.0f);
  *
  * Note: This is only used when MPC_POS_MODE is set to 1.
  *
- * @unit m/s/s
+ * @unit m/s^2
  * @min 0.5
  * @max 10.0
  * @increment 1
@@ -506,7 +509,7 @@ PARAM_DEFINE_FLOAT(MPC_DEC_HOR_SLOW, 5.0f);
 /**
  * Maximum vertical acceleration in velocity controlled modes upward
  *
- * @unit m/s/s
+ * @unit m/s^2
  * @min 2.0
  * @max 15.0
  * @increment 1
@@ -518,7 +521,7 @@ PARAM_DEFINE_FLOAT(MPC_ACC_UP_MAX, 4.0f);
 /**
  * Maximum vertical acceleration in velocity controlled modes down
  *
- * @unit m/s/s
+ * @unit m/s^2
  * @min 2.0
  * @max 15.0
  * @increment 1
@@ -536,9 +539,9 @@ PARAM_DEFINE_FLOAT(MPC_ACC_DOWN_MAX, 3.0f);
  *
  * Setting this to the maximum value essentially disables the limit.
  *
- * Note: This is only used when MPC_POS_MODE is set to a smoothing mode 1 or 3.
+ * Note: This is only used when MPC_POS_MODE is set to a smoothing mode 1, 3 or 4.
  *
- * @unit m/s/s/s
+ * @unit m/s^3
  * @min 0.5
  * @max 500.0
  * @increment 1
@@ -561,7 +564,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MAX, 8.0f);
  *
  * Note: This is only used when MPC_POS_MODE is set to 1.
  *
- * @unit m/s/s/s
+ * @unit m/s^3
  * @min 0
  * @max 30.0
  * @increment 1
@@ -577,7 +580,7 @@ PARAM_DEFINE_FLOAT(MPC_JERK_MIN, 8.0f);
  * A lower value leads to smoother vehicle motions, but it also limits its
  * agility.
  *
- * @unit m/s/s/s
+ * @unit m/s^3
  * @min 1.0
  * @max 80.0
  * @increment 1
@@ -688,7 +691,7 @@ PARAM_DEFINE_FLOAT(MPC_YAWRAUTO_MAX, 45.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 5.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 10.0f);
 
 /**
  * Altitude for 2. step of slow landing (landing)
@@ -703,7 +706,7 @@ PARAM_DEFINE_FLOAT(MPC_LAND_ALT1, 5.0f);
  * @decimal 1
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 2.0f);
+PARAM_DEFINE_FLOAT(MPC_LAND_ALT2, 5.0f);
 
 /**
  * Position control smooth takeoff ramp time constant
@@ -727,13 +730,15 @@ PARAM_DEFINE_FLOAT(MPC_TKO_RAMP_T, 3.0f);
  * 1 Smooth position control with maximum acceleration and jerk limits based on slew-rates.
  * 3 Smooth position control with maximum acceleration and jerk limits based on
  *   jerk optimized trajectory generator (different algorithm than 1).
+ * 4 Smooth position control where sticks map to acceleration and there's a virtual brake drag
  *
  * @value 0 Simple position control
  * @value 1 Smooth position control
  * @value 3 Smooth position control (Jerk optimized)
+ * @value 4 Acceleration based input
  * @group Multicopter Position Control
  */
-PARAM_DEFINE_INT32(MPC_POS_MODE, 3);
+PARAM_DEFINE_INT32(MPC_POS_MODE, 4);
 
 /**
  * Enforced delay between arming and takeoff

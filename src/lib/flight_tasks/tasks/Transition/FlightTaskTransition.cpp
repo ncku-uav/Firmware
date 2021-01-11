@@ -42,20 +42,9 @@ bool FlightTaskTransition::updateInitialize()
 	return FlightTask::updateInitialize();
 }
 
-bool FlightTaskTransition::activate(vehicle_local_position_setpoint_s last_setpoint)
+bool FlightTaskTransition::activate(const vehicle_local_position_setpoint_s &last_setpoint)
 {
-	checkSetpoints(last_setpoint);
-	_transition_altitude = last_setpoint.z;
-	_transition_yaw = last_setpoint.yaw;
 	return FlightTask::activate(last_setpoint);
-}
-
-void FlightTaskTransition::checkSetpoints(vehicle_local_position_setpoint_s &setpoints)
-{
-	// If the setpoint is unknown, set to the current estimate
-	if (!PX4_ISFINITE(setpoints.z)) { setpoints.z = _position(2); }
-
-	if (!PX4_ISFINITE(setpoints.yaw)) { setpoints.yaw = _yaw; }
 }
 
 bool FlightTaskTransition::update()

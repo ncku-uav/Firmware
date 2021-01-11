@@ -33,6 +33,7 @@
 
 #include "LoadMon.hpp"
 
+#if defined(__PX4_NUTTX)
 // if free stack space falls below this, print a warning
 #if defined(CONFIG_ARMV7M_STACKCHECK)
 static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 100;
@@ -41,6 +42,7 @@ static constexpr unsigned STACK_LOW_WARNING_THRESHOLD = 300;
 #endif
 
 static constexpr unsigned FDS_LOW_WARNING_THRESHOLD = 2; ///< if free file descriptors fall below this, print a warning
+#endif
 
 using namespace time_literals;
 
@@ -84,16 +86,34 @@ void LoadMon::start()
 
 void LoadMon::Run()
 {
+#if defined (__PX4_LINUX)
+
+	if (_proc_fd == nullptr) {	// init fd
+		_proc_fd = fopen("/proc/meminfo", "r");
+
+		if (_proc_fd == nullptr) {
+			PX4_ERR("Failed to open /proc/meminfo");
+		}
+	}
+
+#endif
 	perf_begin(_cycle_perf);
 
 	cpuload();
+
+#if defined(__PX4_NUTTX)
 
 	if (_param_sys_stck_en.get()) {
 		stack_usage();
 	}
 
+#endif
+
 	if (should_exit()) {
 		ScheduleClear();
+#if defined (__PX4_LINUX)
+		fclose(_proc_fd);
+#endif
 		exit_and_cleanup();
 	}
 
@@ -102,6 +122,23 @@ void LoadMon::Run()
 
 void LoadMon::cpuload()
 {
+#if defined(__PX4_LINUX)
+	tms spent_time_stamp_struct;
+	clock_t total_time_stamp = times(&spent_time_stamp_struct);
+	clock_t spent_time_stamp = spent_time_stamp_struct.tms_utime + spent_time_stamp_struct.tms_stime;
+
+	if (_last_total_time_stamp == 0 || _last_spent_time_stamp == 0) {
+		// Just get the time in the first iteration */
+		_last_total_time_stamp = total_time_stamp;
+		_last_spent_time_stamp = spent_time_stamp;
+		return;
+	}
+
+	// compute system load
+	const float interval = total_time_stamp - _last_total_time_stamp;
+	const float interval_spent_time = spent_time_stamp - _last_spent_time_stamp;
+#elif defined(__PX4_NUTTX)
+
 	if (_last_idle_time == 0) {
 		// Just get the time in the first iteration */
 		_last_idle_time = system_load.tasks[0].total_runtime;
@@ -117,23 +154,91 @@ void LoadMon::cpuload()
 	// compute system load
 	const float interval = now - _last_idle_time_sample;
 	const float interval_idletime = total_runtime - _last_idle_time;
-
-	// get ram usage
-	struct mallinfo mem = mallinfo();
-	float ram_usage = (float)mem.uordblks / mem.arena;
+#endif
 
 	cpuload_s cpuload{};
+#if defined(__PX4_LINUX)
+	/* following calculation is based on free(1)
+	 * https://gitlab.com/procps-ng/procps/-/blob/master/proc/sysinfo.c */
+	char line[256];
+	int32_t kb_main_total = -1;
+	int32_t kb_main_free = -1;
+	int32_t kb_page_cache = -1;
+	int32_t kb_slab_reclaimable = -1;
+	int32_t kb_main_buffers = -1;
+	int parsedCount = 0;
+
+	if (_proc_fd != nullptr) {
+		while (fgets(line, sizeof(line), _proc_fd)) {
+			if (sscanf(line, "MemTotal: %d kB", &kb_main_total) == 1) {
+				++parsedCount;
+				continue;
+			}
+
+			if (sscanf(line, "MemFree: %d kB", &kb_main_free) == 1) {
+				++parsedCount;
+				continue;
+			}
+
+			if (sscanf(line, "Cached: %d kB", &kb_page_cache) == 1) {
+				++parsedCount;
+				continue;
+			}
+
+			if (sscanf(line, "SReclaimable: %d kB", &kb_slab_reclaimable) == 1) {
+				++parsedCount;
+				continue;
+			}
+
+			if (sscanf(line, "Buffers: %d kB", &kb_main_buffers) == 1) {
+				++parsedCount;
+				continue;
+			}
+		}
+
+		fseek(_proc_fd, 0, SEEK_END);
+
+		if (parsedCount == 5) {
+			int32_t kb_main_cached = kb_page_cache + kb_slab_reclaimable;
+			int32_t mem_used = kb_main_total - kb_main_free - kb_main_cached - kb_main_buffers;
+
+			if (mem_used < 0) {
+				mem_used = kb_main_total - kb_main_free;
+			}
+
+			cpuload.ram_usage = (float)mem_used / kb_main_total;
+
+		} else {
+			PX4_ERR("Could not parse /proc/meminfo");
+			cpuload.ram_usage = -1;
+		}
+
+	} else {
+		cpuload.ram_usage = -1;
+	}
+
+	cpuload.load = interval_spent_time / interval;
+#elif defined(__PX4_NUTTX)
+	// get ram usage
+	struct mallinfo mem = mallinfo();
+	cpuload.ram_usage = (float)mem.uordblks / mem.arena;
 	cpuload.load = 1.f - interval_idletime / interval;
-	cpuload.ram_usage = ram_usage;
+#endif
 	cpuload.timestamp = hrt_absolute_time();
 
 	_cpuload_pub.publish(cpuload);
 
 	// store for next iteration
+#if defined(__PX4_LINUX)
+	_last_total_time_stamp = total_time_stamp;
+	_last_spent_time_stamp = spent_time_stamp;
+#elif defined(__PX4_NUTTX)
 	_last_idle_time = total_runtime;
 	_last_idle_time_sample = now;
+#endif
 }
 
+#if defined(__PX4_NUTTX)
 void LoadMon::stack_usage()
 {
 	unsigned stack_free = 0;
@@ -196,6 +301,7 @@ void LoadMon::stack_usage()
 	// Continue after last checked task next cycle
 	_stack_task_index = (_stack_task_index + 1) % CONFIG_MAX_TASKS;
 }
+#endif
 
 int LoadMon::print_usage(const char *reason)
 {

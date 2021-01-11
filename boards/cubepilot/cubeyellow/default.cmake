@@ -11,15 +11,14 @@ px4_add_board(
 	TESTING
 	UAVCAN_INTERFACES 2
 	SERIAL_PORTS
-		# IO DEBUG:/dev/ttyS0
-		TEL1:/dev/ttyS1
-		TEL2:/dev/ttyS2
-		GPS1:/dev/ttyS3
-		GPS2:/dev/ttyS4
-		# CONSOLE:/dev/tty5
-		# PX4IO:/dev/ttyS6
+		TEL1:/dev/ttyS0
+		TEL2:/dev/ttyS1
+		GPS1:/dev/ttyS2
+		# PX4IO:/dev/ttyS3
+		TEL3:/dev/ttyS4
+		GPS2:/dev/ttyS5
 	DRIVERS
-		adc
+		adc/board_adc
 		barometer # all available barometer drivers
 		batt_smbus
 		camera_capture
@@ -67,6 +66,7 @@ px4_add_board(
 		ekf2
 		esc_battery
 		events
+		flight_mode_manager
 		fw_att_control
 		fw_pos_control_l1
 		land_detector
@@ -97,6 +97,7 @@ px4_add_board(
 		hardfault_log
 		i2cdetect
 		led_control
+		mft
 		mixer
 		motor_ramp
 		motor_test
