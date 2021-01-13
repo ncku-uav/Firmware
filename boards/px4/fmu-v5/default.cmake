@@ -59,6 +59,7 @@ px4_add_board(
 		test_ppm
 		tone_alarm
 		uavcan
+		TEENSY/teensy
 	MODULES
 		airspeed_selector
 		attitude_estimator_q
