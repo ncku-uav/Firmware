@@ -7,8 +7,8 @@
 I2CSPIDriverBase *TEENSY::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
-	TEENSY *instance = new TEENSY(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address,
-				      cli.custom2);
+	TEENSY *instance = new TEENSY(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address/*,
+				      cli.custom2*/);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -68,7 +68,7 @@ teensy_main(int argc, char *argv[])
 		// case 't': // battery index
 		// 	cli.custom2 = (int)strtol(cli.optarg(), NULL, 0);
 		// 	break;
-		// }
+		}
 	}
 
 	const char *verb = cli.optarg();

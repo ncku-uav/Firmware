@@ -37,8 +37,6 @@
  *
  * Driver for the I2C attached TEENSY
  */
-#include "uORB/uORB.h"
-#include "uORB/topics/actuator_outputs.h"
 #include "teensy.h"
 
 
@@ -150,19 +148,19 @@ TEENSY::collect()
 	perf_begin(_sample_perf);
 
 	bool success{true};
-	Data AOA,AOS,AiL,AiR,,HT,VT,RPM;
-	success = success &(read(TEENSY_REG_AOA,AOA)) == PX4_OK);
-	success = success &(read(TEENSY_REG_AOS,AOS)) == PX4_OK);
-	success = success &(read(TEENSY_REG_Aileron_L,AiL)) == PX4_OK);
-	success = success &(read(TEENSY_REG_Aileron_R,AiR)) == PX4_OK);
-	success = success &(read(TEENSY_REG_HT,HT)) == PX4_OK);
-	success = success &(read(TEENSY_REG_VT,VT)) == PX4_OK);
-	success = success &(read(TEENSY_REG_Rpm,RPM)) == PX4_OK);
+	Data AOA,AOS,AiL,AiR,HT,VT,RPM;
+	success = success &(read(TEENSY_REG_AOA,AOA.i) == PX4_OK);
+	success = success &(read(TEENSY_REG_AOS,AOS.i) == PX4_OK);
+	success = success &(read(TEENSY_REG_AILERON_L,AiL.i) == PX4_OK);
+	success = success &(read(TEENSY_REG_AILERON_R,AiR.i) == PX4_OK);
+	success = success &(read(TEENSY_REG_HT,HT.i) == PX4_OK);
+	success = success &(read(TEENSY_REG_VT,VT.i) == PX4_OK);
+	success = success &(read(TEENSY_REG_RPM,RPM.i) == PX4_OK);
 	if (!success) {
 		PX4_DEBUG("error reading from TEENSY");
 	}
 
-	struct actuator_outputs_s report
+	//struct actuator_outputs_s report;
 	report.timestamp = hrt_absolute_time();
 	report.output[0] = AOA.f;
 	report.output[1] = AOS.f;
@@ -171,7 +169,10 @@ TEENSY::collect()
 	report.output[4] = HT.f;
 	report.output[5] = VT.f;
 	report.output[6] = RPM.f;
-	orb_publish_auto(ORB_ID(Teensy),&actuator_outpurs_topic,&report,*instance,ORB_PRIO_DEFAULT);
+
+	//teensy_pub = orb_advertise(ORB_ID(Teensy),&report);
+	//orb_publish_auto(ORB_ID(Teensy),&teensy_pub,&report,&instance,ORB_PRIO_DEFAULT);
+	orb_publish(ORB_ID(Teensy), Teensy_pub, &report);
 	perf_end(_sample_perf);
 
 	if (success) {
@@ -220,7 +221,7 @@ TEENSY::RunImpl()
 }
 
 void
-INA226::print_status()
+TEENSY::print_status()
 {
 	I2CSPIDriverBase::print_status();
 
@@ -231,7 +232,7 @@ INA226::print_status()
 		printf("poll interval:  %u \n", _measure_interval);
 
 	} else {
-		PX4_INFO("Device not initialized.",
-			 TEENSY_INIT_RETRY_INTERVAL_US / 1000);
+		PX4_INFO("Device not initialized.");//,
+		// 	 TEENSY_INIT_RETRY_INTERVAL_US / 1000);
 	}
 }

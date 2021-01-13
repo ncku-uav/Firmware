@@ -7,7 +7,9 @@
 #include <lib/perf/perf_counter.h>
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
+#include <uORB/topics/actuator_outputs.h>
 // #include <uORB/Subscription.hpp>
+#include <px4_platform_common/module_params.h>
 // #include <uORB/topics/actuator_controls.h>
 // #include <uORB/topics/parameter_update.h>
 #include <px4_platform_common/i2c_spi_buses.h>
@@ -23,11 +25,11 @@ using namespace time_literals;
 /* TEENSY Registers addresses*/
 #define TEENSY_REG_AOA (0x01)
 #define TEENSY_REG_AOS (0x02)
-#define TEENSY_REG_Aileron_L (0x03)
-#define TEENSY_REG_Aileron_R (0x04)
+#define TEENSY_REG_AILERON_L (0x03)
+#define TEENSY_REG_AILERON_R (0x04)
 #define TEENSY_REG_HT (0x05)
 #define TEENSY_REG_VT (0x06)
-#define TEENSY_REG_Rpm (0x07)
+#define TEENSY_REG_RPM (0x07)
 
 /* INA226 Registers addresses */
 // #define INA226_REG_CONFIGURATION             (0x00)
@@ -145,6 +147,7 @@ public:
 	* Diagnostics - print some basic information about the driver.
 	*/
 	void				      print_status() override;
+	struct actuator_outputs_s report;
 
 protected:
 	int	  		probe() override;
@@ -154,6 +157,7 @@ private:
 	unsigned                        _measure_interval{0};
 	bool			        _collect_phase{false};
 	bool 					_initialized{false};
+
 
 	perf_counter_t		_sample_perf;
 	perf_counter_t		_comms_errors;
@@ -180,11 +184,12 @@ private:
 	typedef union
 	{
 		int32_t i  ;
-		_Float32 f ;
+		float32 f ;
 	}Data;
 
-	int read(uint8_t address, int16_t &data);
+	int read(uint8_t address, int32_t &data);
 	int write(uint8_t address, uint16_t data);
+	orb_advert_t Teensy_pub = orb_advertise(ORB_ID(Teensy), &report);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.
