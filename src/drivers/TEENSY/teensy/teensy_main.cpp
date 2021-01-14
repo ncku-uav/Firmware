@@ -43,7 +43,7 @@ Driver for TEENSY
 
 	PRINT_MODULE_USAGE_COMMAND("start");
 	PRINT_MODULE_USAGE_PARAMS_I2C_SPI_DRIVER(true, false);
-	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(0xac);
+	PRINT_MODULE_USAGE_PARAMS_I2C_ADDRESS(TEENSY_BASEADDR);
 	PRINT_MODULE_USAGE_PARAM_FLAG('k', "if initialization (probing) fails, keep retrying periodically", true);
 	// PRINT_MODULE_USAGE_PARAM_INT('t', 1, 1, 2, "battery index for calibration values (1 or 2)", true);
 	PRINT_MODULE_USAGE_DEFAULT_COMMANDS();
@@ -80,6 +80,7 @@ teensy_main(int argc, char *argv[])
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MSG_DEVTYPE_TEENSY);
 
 	if (!strcmp(verb, "start")) {
+		PX4_INFO("Teensy start !!");
 		return ThisDriver::module_start(cli, iterator);
 	}
 

@@ -8,6 +8,7 @@
 #include <drivers/drv_hrt.h>
 #include <uORB/uORB.h>
 #include <uORB/topics/actuator_outputs.h>
+#include <uORB/topics/orb_test.h>
 // #include <uORB/Subscription.hpp>
 #include <px4_platform_common/module_params.h>
 // #include <uORB/topics/actuator_controls.h>
@@ -19,17 +20,17 @@ using namespace time_literals;
 /* Configuration Constants */
 #define TEENSY_BASEADDR 	                    0xac /*NCKU UAV */  /* 7-bit address. 8-bit address is 0x1 */
 // If initialization is forced (with the -f flag on the command line), but it fails, the drive will try again to
-// connect to the INA226 every this many microseconds
+// connect to the TEENSY every this many microseconds
 #define TEENSY_INIT_RETRY_INTERVAL_US			500000 //NCKU UAV
 
 /* TEENSY Registers addresses*/
-#define TEENSY_REG_AOA (0x01)
-#define TEENSY_REG_AOS (0x02)
-#define TEENSY_REG_AILERON_L (0x03)
-#define TEENSY_REG_AILERON_R (0x04)
-#define TEENSY_REG_HT (0x05)
-#define TEENSY_REG_VT (0x06)
-#define TEENSY_REG_RPM (0x07)
+#define TEENSY_REG_AOA (0x05)
+#define TEENSY_REG_AOS (0x07)
+#define TEENSY_REG_AILERON_L (0x09)
+#define TEENSY_REG_AILERON_R (0x0b)
+#define TEENSY_REG_HT (0x0d)
+#define TEENSY_REG_VT (0x0f)
+#define TEENSY_REG_RPM (0x11)
 
 /* INA226 Registers addresses */
 // #define INA226_REG_CONFIGURATION             (0x00)
@@ -110,7 +111,7 @@ using namespace time_literals;
 // #define INA226_SUL                           (1 << 14)
 // #define INA226_SOL                           (1 << 15)
 
-#define TEENSY_SAMPLE_FREQUENCY_HZ            50	//NCKU UAV
+#define TEENSY_SAMPLE_FREQUENCY_HZ            1	//NCKU UAV
 #define TEENSY_SAMPLE_INTERVAL_US             (1_s / TEENSY_SAMPLE_FREQUENCY_HZ)
 // #define INA226_CONVERSION_INTERVAL            (INA226_SAMPLE_INTERVAL_US - 7)
 // #define MAX_CURRENT                           164.0f    /* 164 Amps */
@@ -119,7 +120,8 @@ using namespace time_literals;
 // #define INA226_SHUNT                          0.0005f   /* Shunt is 500 uOhm */
 // #define INA226_VSCALE                         0.00125f  /* LSB of voltage is 1.25 mV  */
 
-#define swap32(w)                       __builtin_bswap32((w))
+// #define swap32(w)                       __builtin_bswap32((w))
+#define swap16(w)                       __builtin_bswap16((w))
 
 class TEENSY : public device::I2C, public ModuleParams, public I2CSPIDriver<TEENSY>
 {
@@ -148,6 +150,7 @@ public:
 	*/
 	void				      print_status() override;
 	struct actuator_outputs_s report;
+	struct orb_test_s test ;
 
 protected:
 	int	  		probe() override;
@@ -181,15 +184,17 @@ private:
 	// Battery 		  _battery;
 	// uORB::Subscription  _actuators_sub{ORB_ID(actuator_controls_0)};
 	// uORB::Subscription  _parameter_update_sub{ORB_ID(parameter_update)};
-	typedef union
-	{
-		int32_t i  ;
-		float32 f ;
-	}Data;
 
-	int read(uint8_t address, int32_t &data);
+
+	uint16_t Data;
+
+	uint16_t testData ;
+
+	int read(uint8_t address, uint16_t &data);
 	int write(uint8_t address, uint16_t data);
+
 	orb_advert_t Teensy_pub = orb_advertise(ORB_ID(Teensy), &report);
+	orb_advert_t Teensy_pub_test = orb_advertise(ORB_ID(teensy_test),&test);
 
 	/**
 	* Initialise the automatic measurement state machine and start it.

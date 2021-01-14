@@ -61,19 +61,55 @@ TEENSY::~TEENSY()
 	perf_free(_collection_errors);
 	// perf_free(_measure_errors);
 }
-
-int TEENSY::read(uint8_t address, int32_t &data)
+/*
+int TEENSY::read(uint8_t address, uint32_t &data)
 {
+	// PX4_INFO("Teensy Start Read\n");
 	// read desired little-endian value via I2C
 	uint32_t received_bytes;
 	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
 
 	if (ret == PX4_OK) {
 		data = swap32(received_bytes);
+		// data = received_bytes;
+
 
 	} else {
 		perf_count(_comms_errors);
 		PX4_DEBUG("i2c::transfer returned %d", ret);
+		// PX4_INFO("Teensy read Error");
+	}
+
+	return ret;
+}*/
+int TEENSY::read(uint8_t address, uint16_t &data)
+{
+	// PX4_INFO("Teensy Start Read\n");
+	// read desired little-endian value via I2C
+	// union {
+	// 	uint32_t reg;
+	// 	uint8_t b[4]={};
+	// }received_bytes;
+	uint16_t received_bytes;
+	const int ret = transfer(&address, 1, (uint8_t *)&received_bytes, sizeof(received_bytes));
+	// const int ret = transfer(&address, 1, (uint8_t *)&received_bytes.b[0], sizeof(received_bytes.b));
+
+	if (ret == PX4_OK) {
+
+		// data = swap32(received_bytes.reg);
+		data = swap16(received_bytes);
+		// data = received_bytes.reg;
+		// data = received_bytes;
+		// if(data != 0){
+		// 	data = 999;
+		// }
+
+
+	} else {
+		perf_count(_comms_errors);
+		PX4_DEBUG("i2c::transfer returned %d", ret);
+		// PX4_INFO("Teensy read Error");
+		data=444;
 	}
 
 	return ret;
@@ -84,6 +120,8 @@ int TEENSY::write(uint8_t address, uint16_t value)
 	uint8_t data[3] = {address, ((uint8_t)((value & 0xff00) >> 8)), (uint8_t)(value & 0xff)}; // NCKU UAV: here should change in unit32_t
 	return transfer(data, sizeof(data), nullptr, 0);
 }
+
+
 
 int
 TEENSY::init()
@@ -97,7 +135,7 @@ TEENSY::init()
 
 
 	ret = PX4_OK;
-
+	// PX4_INFO("Teensy init!");
 	start();
 	_teensy_ok = true;
 
@@ -145,34 +183,38 @@ TEENSY::probe()
 int
 TEENSY::collect()
 {
+	PX4_INFO("Teensy collect");
 	perf_begin(_sample_perf);
 
+
 	bool success{true};
-	Data AOA,AOS,AiL,AiR,HT,VT,RPM;
-	success = success &(read(TEENSY_REG_AOA,AOA.i) == PX4_OK);
-	success = success &(read(TEENSY_REG_AOS,AOS.i) == PX4_OK);
-	success = success &(read(TEENSY_REG_AILERON_L,AiL.i) == PX4_OK);
-	success = success &(read(TEENSY_REG_AILERON_R,AiR.i) == PX4_OK);
-	success = success &(read(TEENSY_REG_HT,HT.i) == PX4_OK);
-	success = success &(read(TEENSY_REG_VT,VT.i) == PX4_OK);
-	success = success &(read(TEENSY_REG_RPM,RPM.i) == PX4_OK);
+	uint16_t AOA,AOS,AiL,AiR,HT,VT,RPM;
+	success = success &&(read(TEENSY_REG_AOS,AOS) == PX4_OK);
+	success = success &&(read(0x05,testData) == PX4_OK);
+	success = success &&(read(TEENSY_REG_AOA,AOA) == PX4_OK);
+	success = success &&(read(TEENSY_REG_AILERON_L,AiL) == PX4_OK);
+	success = success &&(read(TEENSY_REG_AILERON_R,AiR) == PX4_OK);
+	success = success &&(read(TEENSY_REG_HT,HT) == PX4_OK);
+	success = success &&(read(TEENSY_REG_VT,VT) == PX4_OK);
+	success = success &&(read(TEENSY_REG_RPM,RPM) == PX4_OK);
 	if (!success) {
 		PX4_DEBUG("error reading from TEENSY");
 	}
-
-	//struct actuator_outputs_s report;
 	report.timestamp = hrt_absolute_time();
-	report.output[0] = AOA.f;
-	report.output[1] = AOS.f;
-	report.output[2] = AiL.f;
-	report.output[3] = AiR.f;
-	report.output[4] = HT.f;
-	report.output[5] = VT.f;
-	report.output[6] = RPM.f;
+	report.output[0] = (float32) AOA/100;
+	report.output[1] = (float32) AOS/100;
+	report.output[2] = (float32) AiL/100;
+	report.output[3] = (float32)AiR/100;
+	report.output[4] =(float32)HT/100;
+	report.output[5] = (float32)VT/100;
+	report.output[6] = (float32) RPM;
+	test.timestamp = hrt_absolute_time();
+	test.val = (int32_t) testData;
 
-	//teensy_pub = orb_advertise(ORB_ID(Teensy),&report);
-	//orb_publish_auto(ORB_ID(Teensy),&teensy_pub,&report,&instance,ORB_PRIO_DEFAULT);
+
 	orb_publish(ORB_ID(Teensy), Teensy_pub, &report);
+	orb_publish(ORB_ID(teensy_test),Teensy_pub_test,&test);
+
 	perf_end(_sample_perf);
 
 	if (success) {
@@ -201,11 +243,11 @@ TEENSY::start()
 void
 TEENSY::RunImpl()
 {
+	PX4_INFO("Teensy Run!");
 	if (_initialized) {
 		if(_collect_phase){
 		  	if (collect() != PX4_OK) {
 				perf_count(_collection_errors);
-				/* if error restart the measurement state machine */
 				start();
 				return;
 			}
@@ -223,6 +265,7 @@ TEENSY::RunImpl()
 void
 TEENSY::print_status()
 {
+	PX4_INFO("Teensy status");
 	I2CSPIDriverBase::print_status();
 
 	if (_initialized) {
