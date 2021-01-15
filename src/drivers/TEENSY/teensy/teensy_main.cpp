@@ -7,8 +7,8 @@
 I2CSPIDriverBase *TEENSY::instantiate(const BusCLIArguments &cli, const BusInstanceIterator &iterator,
 				      int runtime_instance)
 {
-	TEENSY *instance = new TEENSY(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address/*,
-				      cli.custom2*/);
+	/*Regist Teensy to bus*/
+	TEENSY *instance = new TEENSY(iterator.configuredBusOption(), iterator.bus(), cli.bus_frequency, cli.i2c_address);
 
 	if (instance == nullptr) {
 		PX4_ERR("alloc failed");
@@ -57,17 +57,13 @@ teensy_main(int argc, char *argv[])
 	BusCLIArguments cli{true, false};
 	cli.i2c_address = TEENSY_BASEADDR;
 	cli.default_i2c_frequency = 100000;
-	cli.custom2 = 1;
+	cli.custom2 = 1; //custom command value
 
 	while ((ch = cli.getopt(argc, argv, "kt:")) != EOF) {
 		switch (ch) {
 		case 'k': // keep retrying
 			cli.custom1 = 1;
 			break;
-
-		// case 't': // battery index
-		// 	cli.custom2 = (int)strtol(cli.optarg(), NULL, 0);
-		// 	break;
 		}
 	}
 
@@ -79,6 +75,7 @@ teensy_main(int argc, char *argv[])
 
 	BusInstanceIterator iterator(MODULE_NAME, cli, DRV_MSG_DEVTYPE_TEENSY);
 
+	/*Teensy commands*/
 	if (!strcmp(verb, "start")) {
 		PX4_INFO("Teensy start !!");
 		return ThisDriver::module_start(cli, iterator);
